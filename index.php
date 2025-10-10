@@ -26,13 +26,18 @@ function csrf_token(): string
     return $_SESSION['csrf'];
 }
 
-function check_csrf(): void
+function verify_csrf_token(?string $token): void
 {
-    if (($_POST['csrf'] ?? '') !== ($_SESSION['csrf'] ?? '')) {
+    if (!$token || !hash_equals($_SESSION['csrf'] ?? '', $token)) {
         http_response_code(400);
         echo 'CSRF inválido';
         exit;
     }
+}
+
+function check_csrf(): void
+{
+    verify_csrf_token($_POST['csrf'] ?? '');
 }
 
 switch ($action) {
@@ -154,7 +159,7 @@ switch ($action) {
                 "SELECT l.*, u.name AS author
                  FROM lessons l
                  JOIN users u ON u.id = l.created_by
-                 ORDER BY l.module_id ASC, l.id ASC"
+                 ORDER BY l.module_id ASC, l.sort_order ASC, l.id ASC"
             )->fetchAll();
             foreach ($lessonRows as $lesson) {
                 $lessonsByModule[$lesson['module_id']][] = $lesson;
@@ -337,8 +342,14 @@ switch ($action) {
             $content = $_POST['content_html'] ?? '';
             $video = trim($_POST['video_url'] ?? '');
             if ($module_id && $title) {
-                $pdo->prepare('INSERT INTO lessons (module_id, title, content_html, video_url, created_by) VALUES (?,?,?,?,?)')
-                    ->execute([$module_id, $title, $content, $video, current_user()['id']]);
+                $nextOrderStmt = $pdo->prepare('SELECT COALESCE(MAX(sort_order), 0) + 1 FROM lessons WHERE module_id = ?');
+                $nextOrderStmt->execute([$module_id]);
+                $sortOrder = (int)$nextOrderStmt->fetchColumn();
+                if ($sortOrder <= 0) {
+                    $sortOrder = 1;
+                }
+                $pdo->prepare('INSERT INTO lessons (module_id, title, content_html, video_url, created_by, sort_order) VALUES (?,?,?,?,?,?)')
+                    ->execute([$module_id, $title, $content, $video, current_user()['id'], $sortOrder]);
                 flash_set('Lección creada.');
                 header('Location: ?a=view_module&id=' . $module_id);
                 exit;
@@ -399,6 +410,82 @@ switch ($action) {
         echo 'Método no permitido';
         break;
 
+    case 'lesson_reorder':
+        require_login();
+        require_role(['teacher', 'admin']);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $raw = file_get_contents('php://input') ?: '';
+            $payload = json_decode($raw, true);
+            if (!is_array($payload)) {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => false, 'message' => 'Datos inválidos']);
+                exit;
+            }
+            $token = $payload['csrf'] ?? null;
+            if (!$token || !hash_equals($_SESSION['csrf'] ?? '', $token)) {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => false, 'message' => 'CSRF inválido']);
+                exit;
+            }
+            $moduleId = (int)($payload['module_id'] ?? 0);
+            $orderIds = [];
+            if (is_array($payload['order'] ?? null)) {
+                foreach ($payload['order'] as $value) {
+                    $lessonId = (int)$value;
+                    if ($lessonId > 0) {
+                        $orderIds[] = $lessonId;
+                    }
+                }
+            }
+            if ($moduleId <= 0 || !$orderIds) {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => false, 'message' => 'Faltan datos']);
+                exit;
+            }
+            $existingStmt = $pdo->prepare('SELECT id FROM lessons WHERE module_id = ?');
+            $existingStmt->execute([$moduleId]);
+            $existingIds = array_map('intval', $existingStmt->fetchAll(PDO::FETCH_COLUMN));
+            if (!$existingIds) {
+                http_response_code(404);
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => false, 'message' => 'Módulo sin lecciones']);
+                exit;
+            }
+            $existingSet = $existingIds;
+            sort($existingSet);
+            $orderSet = $orderIds;
+            sort($orderSet);
+            if ($existingSet !== $orderSet) {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => false, 'message' => 'Orden no válido']);
+                exit;
+            }
+            try {
+                $pdo->beginTransaction();
+                $update = $pdo->prepare('UPDATE lessons SET sort_order = ? WHERE id = ? AND module_id = ?');
+                foreach ($orderIds as $index => $lessonId) {
+                    $update->execute([$index + 1, $lessonId, $moduleId]);
+                }
+                $pdo->commit();
+            } catch (Throwable $e) {
+                $pdo->rollBack();
+                http_response_code(500);
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => false, 'message' => 'No se pudo actualizar el orden']);
+                exit;
+            }
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => true, 'message' => 'Orden de lecciones actualizado.']);
+            exit;
+        }
+        http_response_code(405);
+        echo 'Método no permitido';
+        break;
+
     case 'view_module':
         require_login();
         $id = (int)($_GET['id'] ?? 0);
@@ -420,7 +507,7 @@ switch ($action) {
              FROM lessons l
              JOIN users u ON u.id = l.created_by
              WHERE module_id = ?
-             ORDER BY l.id ASC"
+             ORDER BY l.sort_order ASC, l.id ASC"
         );
         $lessonsStmt->execute([$id]);
         $lessons = $lessonsStmt->fetchAll();

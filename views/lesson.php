@@ -109,11 +109,11 @@ $embedSrc = video_embed_src($lesson['video_url'] ?? '');
     </div>
   <?php endif; ?>
 
-  <article class="lesson-content" style="display:grid; gap:16px;">
+  <article class="lesson-content">
     <div class="muted" style="font-size:0.85rem;">
       Actualizado el <?php echo date('d/m/Y H:i', strtotime($lesson['created_at'] ?? 'now')); ?>
     </div>
-    <div class="lesson-body" style="display:grid; gap:16px; line-height:1.7;">
+    <div class="lesson-body">
       <?php echo $lesson['content_html']; ?>
     </div>
   </article>

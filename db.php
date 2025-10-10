@@ -50,6 +50,7 @@ if ($firstRun) {
     title TEXT NOT NULL,
     content_html TEXT DEFAULT '',
     video_url TEXT DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
     created_by INTEGER NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY(module_id) REFERENCES modules(id),
@@ -91,3 +92,39 @@ CREATE TABLE IF NOT EXISTS lesson_progress (
   FOREIGN KEY(lesson_id) REFERENCES lessons(id)
 );
 SQL);
+
+// Ensure lessons table has a stable sort order column
+$hasSortOrder = false;
+$columns = $pdo->query("PRAGMA table_info(lessons)")->fetchAll();
+foreach ($columns as $column) {
+  if (($column['name'] ?? '') === 'sort_order') {
+    $hasSortOrder = true;
+    break;
+  }
+}
+
+if (!$hasSortOrder) {
+  try {
+    $pdo->exec("ALTER TABLE lessons ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0");
+    $hasSortOrder = true;
+  } catch (Throwable $e) {
+    // Column already exists or cannot be created – continue gracefully.
+  }
+}
+
+if ($hasSortOrder) {
+  $needsOrdering = (int)($pdo->query("SELECT COUNT(*) FROM lessons WHERE sort_order IS NULL OR sort_order = 0")->fetchColumn() ?: 0);
+  if ($needsOrdering > 0) {
+    $moduleIds = $pdo->query("SELECT DISTINCT module_id FROM lessons")->fetchAll(PDO::FETCH_COLUMN);
+    $fetchLessons = $pdo->prepare("SELECT id FROM lessons WHERE module_id = ? ORDER BY created_at ASC, id ASC");
+    $updateOrder = $pdo->prepare("UPDATE lessons SET sort_order = ? WHERE id = ?");
+    foreach ($moduleIds as $moduleId) {
+      $fetchLessons->execute([$moduleId]);
+      $rows = $fetchLessons->fetchAll(PDO::FETCH_COLUMN);
+      $position = 1;
+      foreach ($rows as $lessonId) {
+        $updateOrder->execute([$position++, $lessonId]);
+      }
+    }
+  }
+}

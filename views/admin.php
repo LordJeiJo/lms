@@ -67,8 +67,8 @@
               <input type="text" name="title" required>
             </label>
             <label>
-              Contenido HTML (simple)
-              <textarea name="content_html" placeholder="Puedes usar HTML básico para estructurar el contenido."></textarea>
+              Contenido de la lección
+              <textarea name="content_html" data-rich-editor placeholder="Escribe el contenido y utiliza la barra de formato para darle estructura."></textarea>
             </label>
             <label>
               URL de vídeo (YouTube, Vimeo...)
@@ -77,16 +77,20 @@
             <button class="button small" type="submit">Añadir lección</button>
           </form>
         </details>
-        <section class="lesson-list">
+        <section class="lesson-list" data-sortable data-module-id="<?php echo $module['id']; ?>">
           <?php if (empty($module['lessons'])): ?>
             <div class="empty" style="border-style:dashed;">Aún no hay lecciones en este módulo.</div>
           <?php else: ?>
+            <p class="muted" style="font-size:0.75rem; margin:0;">Arrastra las tarjetas con el icono ↕ para reorganizar el orden de las lecciones.</p>
             <?php foreach ($module['lessons'] as $lesson): ?>
-              <article class="lesson-card" style="gap:14px;">
-                <header>
-                  <div>
-                    <h3 style="font-size:1.1rem;"><?php echo htmlspecialchars($lesson['title']); ?></h3>
-                    <p class="muted" style="font-size:0.8rem;">Creada por <?php echo htmlspecialchars($lesson['author']); ?></p>
+              <article class="lesson-card" data-lesson-id="<?php echo $lesson['id']; ?>" style="gap:14px;">
+                <header style="display:flex; align-items:flex-start; gap:14px;">
+                  <div style="display:flex; gap:12px; align-items:flex-start; flex:1; min-width:0;">
+                    <span class="drag-handle" data-drag-handle title="Arrastra para reordenar" aria-hidden="true">↕</span>
+                    <div style="flex:1; min-width:0;">
+                      <h3 style="font-size:1.1rem;"><?php echo htmlspecialchars($lesson['title']); ?></h3>
+                      <p class="muted" style="font-size:0.8rem;">Creada por <?php echo htmlspecialchars($lesson['author']); ?></p>
+                    </div>
                   </div>
                   <div class="actions">
                     <a class="button secondary small" href="?a=view_lesson&id=<?php echo $lesson['id']; ?>">Ver</a>
@@ -102,8 +106,8 @@
                             <input type="text" name="title" value="<?php echo htmlspecialchars($lesson['title']); ?>" required>
                           </label>
                           <label>
-                            Contenido HTML
-                            <textarea name="content_html"><?php echo htmlspecialchars($lesson['content_html'] ?? ''); ?></textarea>
+                            Contenido de la lección
+                            <textarea name="content_html" data-rich-editor><?php echo htmlspecialchars($lesson['content_html'] ?? ''); ?></textarea>
                           </label>
                           <label>
                             URL de vídeo

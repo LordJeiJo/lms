@@ -11,10 +11,14 @@ foreach ($lessons as $lesson) {
 }
 $pct = $total ? round(($completed / $total) * 100) : 0;
 $isTeacher = in_array(current_user()['role'], ['teacher','admin'], true);
+$moduleIsActive = (int)($module['is_active'] ?? 1) === 1;
 ?>
 <section class="hero">
   <div class="subtitle">Módulo</div>
   <h1><?php echo htmlspecialchars($module['title']); ?></h1>
+  <?php if ($isTeacher && !$moduleIsActive): ?>
+    <span class="chip warning" style="justify-self:start;">Oculto para el alumnado</span>
+  <?php endif; ?>
   <p><?php echo nl2br(htmlspecialchars($module['description'] ?? '')); ?></p>
   <div class="module-progress-grid">
     <div class="module-progress-card">

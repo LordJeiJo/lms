@@ -15,7 +15,7 @@ if (!is_file($viewPath ?? '')) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="<?php echo htmlspecialchars(csrf_token()); ?>" />
-  <title>JeiJoLand</title>
+  <title>Campus JeiJoLand</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -37,6 +37,67 @@ if (!is_file($viewPath ?? '')) {
       --warning: #ffad4b;
       --success: #5dffa3;
       --font-base: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --surface-panel: rgba(9, 18, 40, 0.72);
+      --surface-panel-strong: rgba(11, 25, 58, 0.92);
+      --surface-overlay: rgba(6, 14, 30, 0.7);
+      --surface-overlay-strong: rgba(6, 14, 30, 0.82);
+      --surface-muted: rgba(6, 14, 30, 0.55);
+      --surface-alt: rgba(6, 14, 30, 0.68);
+      --surface-progress: rgba(6, 14, 30, 0.72);
+      --flash-bg: rgba(7, 18, 35, 0.84);
+      --input-bg: rgba(7, 17, 34, 0.72);
+      --chip-bg: rgba(255,255,255,0.08);
+      --toolbar-bg: rgba(255,255,255,0.06);
+      --toolbar-border: rgba(255,255,255,0.12);
+      --border-soft: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.12);
+      --border-dashed: rgba(255,255,255,0.18);
+      --header-shadow: 0 18px 40px -30px rgba(0,0,0,0.85);
+      --header-ring: 0 0 0 1px var(--accent-soft);
+      --pulse-bg: radial-gradient(circle at 30% 30%, #f9ffff, #9af7ff 45%, rgba(154,247,255,0.2) 100%);
+      --pulse-color: #0a1a33;
+      --pulse-ring: rgba(154,247,255,0.35);
+      --pulse-shadow: 0 8px 18px -8px rgba(126, 246, 216, 0.95);
+      --user-pill-shadow: 0 12px 24px -20px rgba(126, 246, 216, 0.7);
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg-gradient: linear-gradient(135deg, #eef2ff, #f8fbff 52%, #eaf5ff);
+      --card-gradient: linear-gradient(160deg, rgba(255,255,255,0.96), rgba(255,255,255,0.76));
+      --frost: rgba(255,255,255,0.85);
+      --frost-strong: rgba(255,255,255,0.95);
+      --outline: rgba(15,23,42,0.08);
+      --glow: rgba(99, 132, 255, 0.18);
+      --accent: #2563eb;
+      --accent-strong: #1d4ed8;
+      --accent-soft: rgba(37, 99, 235, 0.14);
+      --text-strong: #0f172a;
+      --text-soft: rgba(15, 23, 42, 0.72);
+      --danger: #e11d48;
+      --warning: #f59e0b;
+      --success: #10b981;
+      --surface-panel: rgba(255,255,255,0.9);
+      --surface-panel-strong: rgba(255,255,255,0.96);
+      --surface-overlay: rgba(255,255,255,0.95);
+      --surface-overlay-strong: rgba(247,249,255,0.98);
+      --surface-muted: rgba(245,247,255,0.85);
+      --surface-alt: rgba(247,249,255,0.9);
+      --surface-progress: rgba(255,255,255,0.96);
+      --flash-bg: rgba(255,255,255,0.95);
+      --input-bg: rgba(255,255,255,0.9);
+      --chip-bg: rgba(15,23,42,0.08);
+      --toolbar-bg: rgba(15,23,42,0.05);
+      --toolbar-border: rgba(15,23,42,0.12);
+      --border-soft: rgba(15,23,42,0.12);
+      --border-strong: rgba(15,23,42,0.18);
+      --border-dashed: rgba(15,23,42,0.22);
+      --header-shadow: 0 18px 40px -28px rgba(15,23,42,0.2);
+      --header-ring: 0 0 0 1px rgba(148, 163, 184, 0.18);
+      --pulse-bg: radial-gradient(circle at 30% 30%, #ffffff, #c7ddff 45%, rgba(199,221,255,0.2) 100%);
+      --pulse-color: #1e293b;
+      --pulse-ring: rgba(148, 163, 184, 0.3);
+      --pulse-shadow: 0 8px 20px -10px rgba(15, 23, 42, 0.18);
+      --user-pill-shadow: 0 12px 24px -20px rgba(15, 23, 42, 0.25);
     }
     * {
       box-sizing: border-box;
@@ -63,6 +124,11 @@ if (!is_file($viewPath ?? '')) {
       pointer-events: none;
       z-index: -2;
     }
+    :root[data-theme="light"] body::before {
+      background: radial-gradient(600px at 15% 15%, rgba(37, 99, 235, 0.12), transparent 60%),
+                  radial-gradient(700px at 85% 10%, rgba(56, 189, 248, 0.16), transparent 65%),
+                  radial-gradient(900px at 70% 80%, rgba(255, 255, 255, 0.75), transparent 70%);
+    }
     body::after {
       content: '';
       position: fixed;
@@ -70,6 +136,9 @@ if (!is_file($viewPath ?? '')) {
       backdrop-filter: blur(90px);
       pointer-events: none;
       z-index: -3;
+    }
+    :root[data-theme="light"] body::after {
+      background: rgba(255,255,255,0.55);
     }
     a {
       color: inherit;
@@ -85,16 +154,24 @@ if (!is_file($viewPath ?? '')) {
     .app-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-start;
+      gap: clamp(12px, 2vw, 32px);
       padding: 18px clamp(16px, 3vw, 36px);
       background: var(--frost);
       border-radius: 26px;
       border: 1px solid var(--outline);
-      box-shadow: 0 18px 40px -30px rgba(0,0,0,0.85), 0 0 0 1px var(--accent-soft);
+      box-shadow: var(--header-shadow), var(--header-ring);
       backdrop-filter: blur(22px);
       position: sticky;
       top: 24px;
       z-index: 20;
+    }
+    .header-controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: clamp(12px, 2vw, 24px);
+      margin-left: auto;
     }
     .brand {
       display: flex;
@@ -111,11 +188,11 @@ if (!is_file($viewPath ?? '')) {
       width: 32px;
       height: 32px;
       border-radius: 12px;
-      background: radial-gradient(circle at 30% 30%, #f9ffff, #9af7ff 45%, rgba(154,247,255,0.2) 100%);
-      box-shadow: 0 0 0 2px rgba(154,247,255,0.35), 0 8px 18px -8px rgba(126, 246, 216, 0.95);
+      background: var(--pulse-bg);
+      box-shadow: 0 0 0 2px var(--pulse-ring), var(--pulse-shadow);
       justify-content: center;
       align-items: center;
-      color: #0a1a33;
+      color: var(--pulse-color);
       font-size: 0.9rem;
       font-weight: 700;
     }
@@ -125,6 +202,7 @@ if (!is_file($viewPath ?? '')) {
       gap: clamp(12px, 2vw, 28px);
       font-weight: 500;
       font-size: 0.95rem;
+      flex-wrap: wrap;
     }
     .nav-link {
       display: inline-flex;
@@ -137,9 +215,35 @@ if (!is_file($viewPath ?? '')) {
     }
     .nav-link.active,
     .nav-link:hover {
-      border-color: rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.05);
+      border-color: var(--border-soft);
+      background: var(--chip-bg);
       color: var(--text-strong);
+    }
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--outline);
+      background: var(--chip-bg);
+      color: var(--text-strong);
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s ease, border 0.2s ease, color 0.2s ease;
+    }
+    .theme-toggle [data-theme-icon] {
+      font-size: 1.05rem;
+    }
+    .theme-toggle:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent-strong);
+      color: var(--text-strong);
+    }
+    .theme-toggle:focus-visible {
+      outline: 2px solid var(--accent-strong);
+      outline-offset: 2px;
     }
     .user-pill {
       display: flex;
@@ -147,10 +251,11 @@ if (!is_file($viewPath ?? '')) {
       gap: 14px;
       padding: 10px 18px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.12);
+      background: var(--chip-bg);
+      border: 1px solid var(--border-strong);
       backdrop-filter: blur(20px);
-      box-shadow: 0 12px 24px -20px rgba(126, 246, 216, 0.7);
+      box-shadow: var(--user-pill-shadow);
+      margin-left: clamp(12px, 3vw, 24px);
     }
     .user-avatar {
       width: 38px;
@@ -170,14 +275,14 @@ if (!is_file($viewPath ?? '')) {
       padding: 8px 14px;
       border-radius: 10px;
       font-weight: 600;
-      background: rgba(255,255,255,0.08);
+      background: var(--chip-bg);
       color: var(--text-strong);
       cursor: pointer;
       transition: background 0.2s ease;
     }
     .logout-form button:hover {
-      background: rgba(126,246,216,0.32);
-      color: #041127;
+      background: var(--accent-soft);
+      color: var(--text-strong);
     }
     main {
       display: flex;
@@ -189,8 +294,8 @@ if (!is_file($viewPath ?? '')) {
     .flash {
       padding: 18px 22px;
       border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(7,18,35,0.84);
+      border: 1px solid var(--border-strong);
+      background: var(--flash-bg);
       backdrop-filter: blur(18px);
       display: flex;
       align-items: center;
@@ -269,7 +374,8 @@ if (!is_file($viewPath ?? '')) {
       letter-spacing: 0.45em;
       font-weight: 600;
       font-size: 0.75rem;
-      color: rgba(244,248,255,0.6);
+      color: var(--text-soft);
+      opacity: 0.7;
     }
     .button {
       display: inline-flex;
@@ -315,30 +421,49 @@ if (!is_file($viewPath ?? '')) {
       display: grid;
       gap: 14px;
     }
+    .form-inline {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: flex-end;
+      margin: 0;
+    }
     label {
       display: grid;
       gap: 6px;
       font-weight: 600;
-      color: rgba(244,248,255,0.82);
+      color: var(--text-soft);
       font-size: 0.9rem;
     }
     input[type="text"],
     input[type="email"],
     input[type="password"],
+    select,
     textarea {
-      background: rgba(7,17,34,0.72);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: var(--input-bg);
+      border: 1px solid var(--border-soft);
       border-radius: 14px;
       padding: 12px 16px;
       color: var(--text-strong);
       font: inherit;
       transition: border 0.2s ease, box-shadow 0.2s ease;
     }
+    select {
+      appearance: none;
+      padding-right: 44px;
+      background-image: linear-gradient(45deg, transparent 50%, var(--text-soft) 50%),
+                        linear-gradient(135deg, var(--text-soft) 50%, transparent 50%);
+      background-position: calc(100% - 24px) calc(1rem + 2px), calc(100% - 16px) calc(1rem + 2px);
+      background-size: 8px 6px, 8px 6px;
+      background-repeat: no-repeat;
+      cursor: pointer;
+    }
     textarea {
       min-height: 160px;
       resize: vertical;
     }
     input:focus,
+    select:focus,
     textarea:focus {
       outline: none;
       border-color: rgba(126,246,216,0.45);
@@ -347,8 +472,8 @@ if (!is_file($viewPath ?? '')) {
     .rich-editor {
       display: grid;
       gap: 10px;
-      background: rgba(6,14,30,0.7);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: var(--surface-overlay);
+      border: 1px solid var(--border-soft);
       border-radius: 18px;
       padding: 14px;
     }
@@ -358,8 +483,8 @@ if (!is_file($viewPath ?? '')) {
       gap: 8px;
     }
     .rich-toolbar button {
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--toolbar-border);
+      background: var(--toolbar-bg);
       color: var(--text-strong);
       border-radius: 10px;
       padding: 6px 12px;
@@ -382,8 +507,8 @@ if (!is_file($viewPath ?? '')) {
       min-height: 200px;
       padding: 12px;
       border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(7,17,34,0.72);
+      border: 1px solid var(--border-soft);
+      background: var(--input-bg);
       line-height: 1.6;
       overflow: auto;
     }
@@ -394,24 +519,25 @@ if (!is_file($viewPath ?? '')) {
     }
     .rich-editor-area:empty::before {
       content: attr(data-placeholder);
-      color: rgba(244,248,255,0.45);
+      color: var(--text-soft);
+      opacity: 0.6;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       border-radius: 18px;
       overflow: hidden;
-      background: rgba(6,14,30,0.75);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: var(--surface-panel);
+      border: 1px solid var(--border-soft);
     }
     thead {
-      background: rgba(255,255,255,0.05);
+      background: var(--chip-bg);
       color: var(--text-strong);
     }
     th, td {
       padding: 14px 16px;
       text-align: left;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid var(--border-soft);
       vertical-align: top;
     }
     tr:last-child td {
@@ -421,7 +547,7 @@ if (!is_file($viewPath ?? '')) {
       position: relative;
       height: 10px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.08);
+      background: var(--chip-bg);
       overflow: hidden;
     }
     .progress-bar span {
@@ -441,18 +567,18 @@ if (!is_file($viewPath ?? '')) {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      background: rgba(255,255,255,0.08);
+      background: var(--chip-bg);
     }
     .chip.success {
       background: rgba(126,246,216,0.2);
-      color: #031227;
+      color: var(--text-strong);
     }
     .chip.warning {
-      background: rgba(255,173,75,0.18);
-      color: #1f1204;
+      background: rgba(255,173,75,0.24);
+      color: var(--text-strong);
     }
     .chip.outline {
-      border: 1px solid rgba(255,255,255,0.15);
+      border: 1px solid var(--border-strong);
       background: transparent;
       color: var(--text-soft);
     }
@@ -467,8 +593,8 @@ if (!is_file($viewPath ?? '')) {
     .lesson-card {
       padding: 18px 20px;
       border-radius: 18px;
-      background: rgba(6,14,30,0.7);
-      border: 1px solid rgba(255,255,255,0.06);
+      background: var(--surface-overlay);
+      border: 1px solid var(--border-soft);
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -479,14 +605,61 @@ if (!is_file($viewPath ?? '')) {
     }
     .lesson-card header {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
+      flex-wrap: wrap;
     }
     .lesson-card .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
+    }
+    .lesson-card .actions details {
+      position: relative;
+    }
+    .lesson-card .actions details[open] {
+      flex-basis: 100%;
+      width: 100%;
+    }
+    .lesson-card .actions details[open] > div {
+      margin-top: 12px;
+      width: 100%;
+    }
+    .user-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .user-role-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      margin: 0;
+    }
+    .user-role-label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+    .user-role-label span {
+      opacity: 0.7;
+    }
+    .user-role-select {
+      min-width: 180px;
+      padding: 10px 16px;
+      border-radius: 12px;
+    }
+    .user-delete-form {
+      display: flex;
+      margin: 0;
     }
     .lesson-card.dragging {
       opacity: 0.6;
@@ -498,7 +671,7 @@ if (!is_file($viewPath ?? '')) {
       justify-content: center;
       padding: 6px;
       border-radius: 10px;
-      background: rgba(255,255,255,0.06);
+      background: var(--chip-bg);
       font-size: 1.1rem;
       cursor: grab;
       user-select: none;
@@ -510,8 +683,8 @@ if (!is_file($viewPath ?? '')) {
       color: #031227;
     }
     details.drawer {
-      background: rgba(7,17,34,0.75);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: var(--surface-panel);
+      border: 1px solid var(--border-soft);
       border-radius: 20px;
       padding: 18px 22px;
     }
@@ -541,9 +714,9 @@ if (!is_file($viewPath ?? '')) {
       display: grid;
       gap: 6px;
       padding: 14px 16px;
-      background: rgba(6,14,30,0.68);
+      background: var(--surface-alt);
       border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid var(--border-soft);
     }
     .lesson-content {
       display: grid;
@@ -581,7 +754,7 @@ if (!is_file($viewPath ?? '')) {
     }
     .lesson-body pre {
       padding: 16px;
-      background: rgba(6,14,30,0.82);
+      background: var(--surface-overlay-strong);
       border-radius: 16px;
       overflow-x: auto;
       font-size: 0.9rem;
@@ -601,23 +774,23 @@ if (!is_file($viewPath ?? '')) {
     .lesson-body table th,
     .lesson-body table td {
       padding: 10px 12px;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid var(--border-soft);
       text-align: left;
     }
     .comment .meta {
       font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: rgba(244,248,255,0.6);
+      color: var(--text-soft);
     }
     .empty {
       padding: 26px;
       border-radius: 20px;
-      border: 1px dashed rgba(255,255,255,0.18);
-      background: rgba(6,14,30,0.55);
+      border: 1px dashed var(--border-dashed);
+      background: var(--surface-muted);
       text-align: center;
       font-weight: 600;
-      color: rgba(244,248,255,0.6);
+      color: var(--text-soft);
     }
     .module-progress-grid {
       display: grid;
@@ -625,8 +798,8 @@ if (!is_file($viewPath ?? '')) {
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     }
     .module-progress-card {
-      background: rgba(6,14,30,0.72);
-      border: 1px solid rgba(255,255,255,0.06);
+      background: var(--surface-progress);
+      border: 1px solid var(--border-soft);
       border-radius: 18px;
       padding: 16px 20px;
       display: grid;
@@ -658,9 +831,19 @@ if (!is_file($viewPath ?? '')) {
         width: 100%;
         justify-content: center;
       }
+      .header-controls {
+        width: 100%;
+        justify-content: center;
+        margin-left: 0;
+      }
+      .theme-toggle {
+        width: 100%;
+        justify-content: center;
+      }
       .user-pill {
         width: 100%;
         justify-content: space-between;
+        margin-left: 0;
       }
       main {
         width: 100%;
@@ -672,21 +855,25 @@ if (!is_file($viewPath ?? '')) {
   <div class="app-shell">
     <header class="app-header">
       <a class="brand" href="?a=<?php echo $u ? 'home' : 'landing'; ?>">
-        <span class="pulse">▲</span>
-        JeiJoLand
+        <span class="pulse"></span>
+        Campus JeiJoLand
       </a>
-      <nav>
+      <div class="header-controls">
         <?php if ($u): ?>
-          <a class="nav-link <?php echo ($_GET['a'] ?? 'home') === 'home' ? 'active' : ''; ?>" href="?a=home">Inicio</a>
-          <a class="nav-link <?php echo ($_GET['a'] ?? '') === 'view_module' ? 'active' : ''; ?>" href="?a=home#modulos">Módulos</a>
-          <?php if (in_array($u['role'], ['teacher','admin'], true)): ?>
-            <a class="nav-link <?php echo ($_GET['a'] ?? '') === 'admin' ? 'active' : ''; ?>" href="?a=admin">Panel</a>
-            <a class="nav-link <?php echo ($_GET['a'] ?? '') === 'users' ? 'active' : ''; ?>" href="?a=users">Seguimiento</a>
-          <?php endif; ?>
-        <?php else: ?>
-          <a class="nav-link active" href="?a=landing">Bienvenida</a>
+          <nav>
+            <a class="nav-link <?php echo ($_GET['a'] ?? 'home') === 'home' ? 'active' : ''; ?>" href="?a=home">Inicio</a>
+            <a class="nav-link <?php echo ($_GET['a'] ?? '') === 'view_module' ? 'active' : ''; ?>" href="?a=home#modulos">Módulos</a>
+            <?php if (in_array($u['role'], ['teacher','admin'], true)): ?>
+              <a class="nav-link <?php echo ($_GET['a'] ?? '') === 'admin' ? 'active' : ''; ?>" href="?a=admin">Panel</a>
+              <a class="nav-link <?php echo ($_GET['a'] ?? '') === 'users' ? 'active' : ''; ?>" href="?a=users">Seguimiento</a>
+            <?php endif; ?>
+          </nav>
         <?php endif; ?>
-      </nav>
+        <button class="theme-toggle" type="button" data-theme-toggle>
+          <span data-theme-icon aria-hidden="true">☀️</span>
+          <span data-theme-label>Modo claro</span>
+        </button>
+      </div>
       <?php if ($u): ?>
         <div class="user-pill">
           <div class="user-avatar"><?php echo strtoupper(substr($u['name'], 0, 2)); ?></div>
@@ -738,6 +925,72 @@ if (!is_file($viewPath ?? '')) {
       const flash = document.querySelector('.flash');
       if (flash) {
         scheduleFlashAutoHide(flash);
+      }
+    })();
+
+    const themeStorageKey = 'lms-theme';
+
+    function applyTheme(theme) {
+      const normalized = theme === 'light' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = normalized;
+      return normalized;
+    }
+
+    function readStoredTheme() {
+      try {
+        return localStorage.getItem(themeStorageKey);
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function writeStoredTheme(theme) {
+      try {
+        localStorage.setItem(themeStorageKey, theme);
+      } catch (error) {
+        // Ignorar almacenamiento inaccesible (modo incógnito, restricciones, etc.).
+      }
+    }
+
+    function updateThemeButton(button, currentTheme) {
+      if (!button) return;
+      const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
+      const icon = button.querySelector('[data-theme-icon]');
+      const label = button.querySelector('[data-theme-label]');
+      if (icon) {
+        icon.textContent = nextTheme === 'light' ? '☀️' : '🌙';
+      }
+      if (label) {
+        label.textContent = `Modo ${nextTheme === 'light' ? 'claro' : 'oscuro'}`;
+      }
+      button.setAttribute('aria-label', `Cambiar a modo ${nextTheme === 'light' ? 'claro' : 'oscuro'}`);
+    }
+
+    (function initThemeToggle() {
+      const button = document.querySelector('[data-theme-toggle]');
+      const stored = readStoredTheme();
+      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      let currentTheme = stored === 'light' || stored === 'dark' ? stored : (prefersLight ? 'light' : 'dark');
+      currentTheme = applyTheme(currentTheme);
+      updateThemeButton(button, currentTheme);
+      if (button) {
+        button.addEventListener('click', () => {
+          currentTheme = applyTheme(currentTheme === 'light' ? 'dark' : 'light');
+          writeStoredTheme(currentTheme);
+          updateThemeButton(button, currentTheme);
+        });
+      }
+      if (!stored && window.matchMedia) {
+        const media = window.matchMedia('(prefers-color-scheme: light)');
+        const syncWithSystem = (event) => {
+          currentTheme = applyTheme(event.matches ? 'light' : 'dark');
+          updateThemeButton(button, currentTheme);
+        };
+        if (media.addEventListener) {
+          media.addEventListener('change', syncWithSystem);
+        } else if (media.addListener) {
+          media.addListener(syncWithSystem);
+        }
       }
     })();
 

@@ -40,6 +40,7 @@ if ($firstRun) {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     description TEXT DEFAULT '',
+    is_active INTEGER NOT NULL DEFAULT 1,
     created_by INTEGER NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY(created_by) REFERENCES users(id)
@@ -79,6 +80,23 @@ SQL);
   $pass = password_hash('admin', PASSWORD_DEFAULT);
   $stmt = $pdo->prepare('INSERT OR IGNORE INTO users (email,name,role,pass_hash) VALUES (?,?,?,?)');
   $stmt->execute(['admin@example.com', 'Admin', 'admin', $pass]);
+}
+
+$moduleColumns = $pdo->query("PRAGMA table_info(modules)")->fetchAll();
+$hasModuleActive = false;
+foreach ($moduleColumns as $column) {
+  if (($column['name'] ?? '') === 'is_active') {
+    $hasModuleActive = true;
+    break;
+  }
+}
+
+if (!$hasModuleActive) {
+  try {
+    $pdo->exec("ALTER TABLE modules ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1");
+  } catch (Throwable $e) {
+    // Column already exists or cannot be created – continue gracefully.
+  }
 }
 
 $pdo->exec(<<<SQL

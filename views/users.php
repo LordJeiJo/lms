@@ -51,13 +51,13 @@ $isAdmin = current_user()['role'] === 'admin';
             <?php endif; ?>
           </div>
           <?php if ($isAdmin): ?>
-            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
-              <form method="post" action="?a=user_set_role" style="display:flex; gap:10px; align-items:center;">
+            <div class="user-actions">
+              <form method="post" action="?a=user_set_role" class="user-role-form">
                 <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                 <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                <label style="margin:0;">
-                  <span style="font-size:0.75rem; letter-spacing:0.14em; text-transform:uppercase; color:rgba(244,248,255,0.6);">Cambiar rol</span>
-                  <select name="role" style="margin-top:4px; background:rgba(6,14,30,0.8); border:1px solid rgba(255,255,255,0.08); color:var(--text-strong); border-radius:10px; padding:8px 12px;">
+                <label class="user-role-label" for="user-role-<?php echo $user['id']; ?>">
+                  <span>Cambiar rol</span>
+                  <select id="user-role-<?php echo $user['id']; ?>" name="role" class="user-role-select">
                     <?php foreach (['student'=>'Estudiante','teacher'=>'Profesor','admin'=>'Admin'] as $value => $label): ?>
                       <option value="<?php echo $value; ?>" <?php if ($user['role'] === $value) echo 'selected'; ?>><?php echo $label; ?></option>
                     <?php endforeach; ?>
@@ -66,7 +66,7 @@ $isAdmin = current_user()['role'] === 'admin';
                 <button class="button small" type="submit">Actualizar</button>
               </form>
               <?php if ($user['id'] !== current_user()['id']): ?>
-                <form method="post" action="?a=user_delete" onsubmit="return confirm('¿Eliminar usuario?');">
+                <form method="post" action="?a=user_delete" class="user-delete-form" onsubmit="return confirm('¿Eliminar usuario?');">
                   <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                   <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
                   <button class="button danger small" type="submit">Eliminar</button>

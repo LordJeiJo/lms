@@ -25,15 +25,26 @@
   <?php if (!$modules): ?>
     <div class="empty">Crea tu primer módulo para empezar.</div>
   <?php else: ?>
-    <?php foreach ($modules as $module): ?>
+    <?php foreach ($modules as $module):
+      $moduleIsActive = (int)($module['is_active'] ?? 1) === 1;
+    ?>
       <article class="card" id="module-<?php echo $module['id']; ?>" style="display:grid; gap:18px;">
         <header style="display:flex; justify-content:space-between; gap:14px; align-items:flex-start;">
           <div>
             <h3><?php echo htmlspecialchars($module['title']); ?></h3>
             <p class="muted"><?php echo htmlspecialchars($module['description'] ?? ''); ?></p>
           </div>
-          <span class="chip outline">Lecciones: <?php echo count($module['lessons'] ?? []); ?></span>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
+            <span class="chip <?php echo $moduleIsActive ? 'success' : 'warning'; ?>"><?php echo $moduleIsActive ? 'Activo' : 'Oculto'; ?></span>
+            <span class="chip outline">Lecciones: <?php echo count($module['lessons'] ?? []); ?></span>
+          </div>
         </header>
+        <form class="form-inline" method="post" action="?a=toggle_module_active">
+          <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+          <input type="hidden" name="id" value="<?php echo $module['id']; ?>">
+          <input type="hidden" name="activate" value="<?php echo $moduleIsActive ? '0' : '1'; ?>">
+          <button class="button secondary small" type="submit"><?php echo $moduleIsActive ? 'Desactivar módulo' : 'Activar módulo'; ?></button>
+        </form>
         <details class="drawer">
           <summary>Editar módulo</summary>
           <form method="post" action="?a=update_module" style="margin-top:18px;">
@@ -95,8 +106,8 @@
                   <div class="actions">
                     <a class="button secondary small" href="?a=view_lesson&id=<?php echo $lesson['id']; ?>">Ver</a>
                     <details class="drawer" style="padding:0; border:none; background:transparent;">
-                      <summary style="padding:6px 10px; border-radius:10px; background:rgba(255,255,255,0.08);">Editar</summary>
-                      <div style="padding:16px; background:rgba(6,14,30,0.85); border-radius:16px; margin-top:10px;">
+                      <summary style="padding:6px 10px; border-radius:10px; background:var(--chip-bg); border:1px solid var(--border-soft);">Editar</summary>
+                      <div style="padding:16px; background:var(--surface-overlay-strong); border-radius:16px; border:1px solid var(--border-strong); margin-top:10px;">
                         <form method="post" action="?a=update_lesson">
                           <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                           <input type="hidden" name="id" value="<?php echo $lesson['id']; ?>">

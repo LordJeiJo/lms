@@ -51,27 +51,29 @@ switch ($action) {
 
     case 'home':
         require_login();
-        $modulesStmt = $pdo->query(
-            "SELECT m.*, u.name AS author, COUNT(l.id) AS lesson_count
+        $isTeacher = in_array(current_user()['role'], ['teacher', 'admin'], true);
+        $moduleSql = "SELECT m.*, u.name AS author, COUNT(l.id) AS lesson_count
              FROM modules m
              JOIN users u ON u.id = m.created_by
-             LEFT JOIN lessons l ON l.module_id = m.id
-             GROUP BY m.id
-             ORDER BY m.created_at DESC"
-        );
-        $modules = $modulesStmt->fetchAll();
+             LEFT JOIN lessons l ON l.module_id = m.id";
+        if (!$isTeacher) {
+            $moduleSql .= " WHERE m.is_active = 1";
+        }
+        $moduleSql .= " GROUP BY m.id ORDER BY m.created_at DESC";
+        $modules = $pdo->query($moduleSql)->fetchAll();
         $progress = [];
         $totalLessons = 0;
         foreach ($modules as $module) {
             $totalLessons += (int)($module['lesson_count'] ?? 0);
         }
-        $progressStmt = $pdo->prepare(
-            "SELECT l.module_id, COUNT(*) AS completed
+        $progressSql = "SELECT l.module_id, COUNT(*) AS completed
              FROM lesson_progress lp
-             JOIN lessons l ON l.id = lp.lesson_id
-             WHERE lp.user_id = ?
-             GROUP BY l.module_id"
-        );
+             JOIN lessons l ON l.id = lp.lesson_id";
+        if (!$isTeacher) {
+            $progressSql .= " JOIN modules m ON m.id = l.module_id AND m.is_active = 1";
+        }
+        $progressSql .= " WHERE lp.user_id = ? GROUP BY l.module_id";
+        $progressStmt = $pdo->prepare($progressSql);
         $progressStmt->execute([current_user()['id']]);
         $totalCompleted = 0;
         foreach ($progressStmt->fetchAll() as $row) {
@@ -273,8 +275,8 @@ switch ($action) {
             $title = trim($_POST['title'] ?? '');
             $desc = trim($_POST['description'] ?? '');
             if ($title) {
-                $pdo->prepare('INSERT INTO modules (title, description, created_by) VALUES (?,?,?)')
-                    ->execute([$title, $desc, current_user()['id']]);
+                $pdo->prepare('INSERT INTO modules (title, description, is_active, created_by) VALUES (?,?,?,?)')
+                    ->execute([$title, $desc, 1, current_user()['id']]);
                 flash_set('Módulo creado.');
                 header('Location: ?a=admin');
                 exit;
@@ -303,6 +305,28 @@ switch ($action) {
             }
             $error = 'Faltan datos';
             render('admin', compact('error'));
+        }
+        http_response_code(405);
+        echo 'Método no permitido';
+        break;
+
+    case 'toggle_module_active':
+        require_login();
+        require_role(['teacher', 'admin']);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            check_csrf();
+            $id = (int)($_POST['id'] ?? 0);
+            $activate = ($_POST['activate'] ?? '1') === '1';
+            if ($id) {
+                $pdo->prepare('UPDATE modules SET is_active = ? WHERE id = ?')
+                    ->execute([$activate ? 1 : 0, $id]);
+                flash_set($activate ? 'Módulo activado.' : 'Módulo desactivado.');
+                header('Location: ?a=admin#module-' . $id);
+                exit;
+            }
+            flash_set('No se pudo cambiar el estado del módulo.', 'error');
+            header('Location: ?a=admin');
+            exit;
         }
         http_response_code(405);
         echo 'Método no permitido';
@@ -502,6 +526,12 @@ switch ($action) {
             echo 'Módulo no encontrado';
             exit;
         }
+        $isTeacher = in_array(current_user()['role'], ['teacher', 'admin'], true);
+        if (($module['is_active'] ?? 1) !== 1 && !$isTeacher) {
+            flash_set('Este módulo no está disponible en este momento.', 'error');
+            header('Location: ?a=home');
+            exit;
+        }
         $lessonsStmt = $pdo->prepare(
             "SELECT l.*, u.name AS author
              FROM lessons l
@@ -531,7 +561,7 @@ switch ($action) {
         require_login();
         $id = (int)($_GET['id'] ?? 0);
         $st = $pdo->prepare(
-            "SELECT l.*, m.title AS module_title, u.name AS author
+            "SELECT l.*, m.title AS module_title, m.is_active AS module_active, u.name AS author
              FROM lessons l
              JOIN modules m ON m.id = l.module_id
              JOIN users u ON u.id = l.created_by
@@ -542,6 +572,12 @@ switch ($action) {
         if (!$lesson) {
             http_response_code(404);
             echo 'Lección no encontrada';
+            exit;
+        }
+        $isTeacher = in_array(current_user()['role'], ['teacher', 'admin'], true);
+        if (($lesson['module_active'] ?? 1) !== 1 && !$isTeacher) {
+            flash_set('La lección pertenece a un módulo inactivo.', 'error');
+            header('Location: ?a=home');
             exit;
         }
         $c = $pdo->prepare(
@@ -578,6 +614,25 @@ switch ($action) {
             $lessonId = (int)($_POST['lesson_id'] ?? 0);
             $complete = ($_POST['complete'] ?? '0') === '1';
             if ($lessonId) {
+                $lessonInfoStmt = $pdo->prepare(
+                    'SELECT l.module_id, m.is_active
+                     FROM lessons l
+                     JOIN modules m ON m.id = l.module_id
+                     WHERE l.id = ?'
+                );
+                $lessonInfoStmt->execute([$lessonId]);
+                $lessonInfo = $lessonInfoStmt->fetch();
+                if (!$lessonInfo) {
+                    http_response_code(404);
+                    echo 'Lección no encontrada';
+                    exit;
+                }
+                $isTeacher = in_array(current_user()['role'], ['teacher', 'admin'], true);
+                if (($lessonInfo['is_active'] ?? 1) !== 1 && !$isTeacher) {
+                    flash_set('No puedes actualizar el progreso de un módulo inactivo.', 'error');
+                    header('Location: ?a=home');
+                    exit;
+                }
                 $existsStmt = $pdo->prepare('SELECT 1 FROM lesson_progress WHERE user_id = ? AND lesson_id = ?');
                 $existsStmt->execute([current_user()['id'], $lessonId]);
                 $exists = (bool)$existsStmt->fetchColumn();
@@ -608,6 +663,20 @@ switch ($action) {
             $lesson_id = (int)($_POST['lesson_id'] ?? 0);
             $body = trim($_POST['body'] ?? '');
             if ($lesson_id && $body) {
+                $lessonInfoStmt = $pdo->prepare(
+                    'SELECT m.is_active
+                     FROM lessons l
+                     JOIN modules m ON m.id = l.module_id
+                     WHERE l.id = ?'
+                );
+                $lessonInfoStmt->execute([$lesson_id]);
+                $lessonInfo = $lessonInfoStmt->fetch();
+                $isTeacher = in_array(current_user()['role'], ['teacher', 'admin'], true);
+                if (!$lessonInfo || (($lessonInfo['is_active'] ?? 1) !== 1 && !$isTeacher)) {
+                    flash_set('No puedes comentar en un módulo inactivo.', 'error');
+                    header('Location: ?a=home');
+                    exit;
+                }
                 $pdo->prepare('INSERT INTO comments (lesson_id, user_id, body) VALUES (?,?,?)')
                     ->execute([$lesson_id, current_user()['id'], $body]);
                 header('Location: ?a=view_lesson&id=' . $lesson_id);

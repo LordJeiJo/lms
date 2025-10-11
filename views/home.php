@@ -51,12 +51,16 @@ $isTeacher = in_array(current_user()['role'], ['teacher','admin'], true);
   </div>
 </section>
 <section id="modulos" class="grid" style="margin-top: 30px;">
-  <h2>Módulos en vivo</h2>
+  <h2>Módulos activos</h2>
+  <?php if ($isTeacher): ?>
+    <p class="muted" style="margin:0;">Gestiona qué módulos ve el alumnado activándolos o desactivándolos desde el panel.</p>
+  <?php endif; ?>
   <?php if (!$modules): ?>
     <div class="empty">Todavía no hay módulos publicados.</div>
   <?php else: ?>
     <div class="grid two">
       <?php foreach ($modules as $module):
+        $moduleIsActive = (int)($module['is_active'] ?? 1) === 1;
         $completed = $progress[$module['id']] ?? 0;
         $total = (int)($module['lesson_count'] ?? 0);
         $pct = $total > 0 ? round(($completed / $total) * 100) : 0;
@@ -67,7 +71,12 @@ $isTeacher = in_array(current_user()['role'], ['teacher','admin'], true);
               <h3><?php echo htmlspecialchars($module['title']); ?></h3>
               <p class="muted">Por <?php echo htmlspecialchars($module['author']); ?></p>
             </div>
-            <span class="chip <?php echo $pct >= 100 ? 'success' : 'outline'; ?>"><?php echo $pct; ?>%</span>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+              <?php if ($isTeacher): ?>
+                <span class="chip <?php echo $moduleIsActive ? 'success' : 'warning'; ?>"><?php echo $moduleIsActive ? 'Activo' : 'Oculto'; ?></span>
+              <?php endif; ?>
+              <span class="chip <?php echo $pct >= 100 ? 'success' : 'outline'; ?>"><?php echo $pct; ?>%</span>
+            </div>
           </header>
           <?php if (!empty($module['description'])): ?>
             <p><?php echo nl2br(htmlspecialchars($module['description'])); ?></p>
@@ -75,6 +84,9 @@ $isTeacher = in_array(current_user()['role'], ['teacher','admin'], true);
           <div>
             <div class="muted" style="font-size:0.85rem; margin-bottom:8px;">Progreso: <?php echo $completed; ?> / <?php echo $total; ?> lecciones</div>
             <div class="progress-bar"><span style="transform: scaleX(<?php echo $total > 0 ? min(1, $completed / $total) : 0; ?>);"></span></div>
+            <?php if ($isTeacher && !$moduleIsActive): ?>
+              <p class="muted" style="font-size:0.8rem; margin-top:8px;">Actualmente oculto para el alumnado.</p>
+            <?php endif; ?>
           </div>
           <div style="display:flex; gap:12px; flex-wrap:wrap;">
             <a class="button small" href="?a=view_module&id=<?php echo $module['id']; ?>">Abrir módulo</a>

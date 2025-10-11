@@ -438,6 +438,7 @@ if (!is_file($viewPath ?? '')) {
     input[type="text"],
     input[type="email"],
     input[type="password"],
+    select,
     textarea {
       background: var(--input-bg);
       border: 1px solid var(--border-soft);
@@ -447,11 +448,22 @@ if (!is_file($viewPath ?? '')) {
       font: inherit;
       transition: border 0.2s ease, box-shadow 0.2s ease;
     }
+    select {
+      appearance: none;
+      padding-right: 44px;
+      background-image: linear-gradient(45deg, transparent 50%, var(--text-soft) 50%),
+                        linear-gradient(135deg, var(--text-soft) 50%, transparent 50%);
+      background-position: calc(100% - 24px) calc(1rem + 2px), calc(100% - 16px) calc(1rem + 2px);
+      background-size: 8px 6px, 8px 6px;
+      background-repeat: no-repeat;
+      cursor: pointer;
+    }
     textarea {
       min-height: 160px;
       resize: vertical;
     }
     input:focus,
+    select:focus,
     textarea:focus {
       outline: none;
       border-color: rgba(126,246,216,0.45);
@@ -596,6 +608,7 @@ if (!is_file($viewPath ?? '')) {
       align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
+      flex-wrap: wrap;
     }
     .lesson-card .actions {
       display: flex;
@@ -612,6 +625,41 @@ if (!is_file($viewPath ?? '')) {
     .lesson-card .actions details[open] > div {
       margin-top: 12px;
       width: 100%;
+    }
+    .user-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .user-role-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      margin: 0;
+    }
+    .user-role-label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+    .user-role-label span {
+      opacity: 0.7;
+    }
+    .user-role-select {
+      min-width: 180px;
+      padding: 10px 16px;
+      border-radius: 12px;
+    }
+    .user-delete-form {
+      display: flex;
+      margin: 0;
     }
     .lesson-card.dragging {
       opacity: 0.6;

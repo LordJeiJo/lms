@@ -23,12 +23,15 @@ $isAdmin = current_user()['role'] === 'admin';
         $userProgress = $progressMatrix[$user['id']] ?? [];
       ?>
         <article class="card" style="display:grid; gap:18px;">
-          <header style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px;">
+          <header style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;">
             <div>
               <h3><?php echo htmlspecialchars($user['name']); ?></h3>
               <p class="muted" style="font-size:0.85rem;"><?php echo htmlspecialchars($user['email']); ?></p>
             </div>
             <span class="chip outline">Rol: <?php echo htmlspecialchars($user['role']); ?></span>
+            <?php if (!empty($user['must_reset_password'])): ?>
+              <span class="chip warning">Contraseña pendiente</span>
+            <?php endif; ?>
           </header>
           <div class="muted" style="font-size:0.8rem;">Alta: <?php echo date('d/m/Y', strtotime($user['created_at'] ?? 'now')); ?></div>
           <div class="module-progress-grid">
@@ -64,6 +67,16 @@ $isAdmin = current_user()['role'] === 'admin';
                   </select>
                 </label>
                 <button class="button small" type="submit">Actualizar</button>
+              </form>
+              <form method="post" action="?a=user_set_password" class="user-password-form" style="display:grid; gap:8px;">
+                <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                <label style="display:grid; gap:6px;">
+                  <span>Asignar contraseña temporal</span>
+                  <input type="password" name="password" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" autocomplete="new-password" placeholder="Nueva contraseña" required>
+                </label>
+                <p class="muted" style="font-size:0.75rem; margin:0;">El usuario deberá cambiarla al iniciar sesión.</p>
+                <button class="button secondary small" type="submit">Guardar contraseña</button>
               </form>
               <?php if ($user['id'] !== current_user()['id']): ?>
                 <form method="post" action="?a=user_delete" class="user-delete-form" onsubmit="return confirm('¿Eliminar usuario?');">

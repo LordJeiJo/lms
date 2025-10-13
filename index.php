@@ -6,6 +6,17 @@ require __DIR__ . '/auth.php';
 
 $action = $_GET['a'] ?? 'landing';
 
+if (!defined('PASSWORD_MIN_LENGTH')) {
+    define('PASSWORD_MIN_LENGTH', 8);
+}
+
+$loggedUser = current_user();
+if ($loggedUser && !empty($loggedUser['must_reset_password']) && !in_array($action, ['profile', 'logout'], true)) {
+    flash_set('Debes actualizar tu contraseña temporal antes de continuar.', 'error');
+    header('Location: ?a=profile');
+    exit;
+}
+
 if (!current_user() && in_array($action, ['home', 'view_module', 'view_lesson', 'admin', 'users'], true)) {
     header('Location: ?a=login');
     exit;
@@ -88,6 +99,76 @@ switch ($action) {
         render('home', compact('modules', 'progress', 'totalLessons', 'totalCompleted', 'overall'));
         break;
 
+    case 'profile':
+        require_login();
+        $profileStmt = $pdo->prepare('SELECT id, email, name, role, pass_hash, must_reset_password FROM users WHERE id = ?');
+        $profileStmt->execute([current_user()['id']]);
+        $profileUser = $profileStmt->fetch();
+        if (!$profileUser) {
+            session_destroy();
+            header('Location: ?a=landing');
+            exit;
+        }
+        $profileUser['must_reset_password'] = (int)($profileUser['must_reset_password'] ?? 0);
+        $errors = [];
+        $originalName = $profileUser['name'];
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            check_csrf();
+            $name = trim($_POST['name'] ?? '');
+            $currentPass = (string)($_POST['current_pass'] ?? '');
+            $newPass = (string)($_POST['new_pass'] ?? '');
+            $confirmPass = (string)($_POST['confirm_pass'] ?? '');
+            if ($name === '') {
+                $errors[] = 'El nombre no puede estar vacío.';
+            }
+            $passwordRequested = ($currentPass !== '') || ($newPass !== '') || ($confirmPass !== '');
+            if ($passwordRequested) {
+                if ($currentPass === '' || !password_verify($currentPass, $profileUser['pass_hash'])) {
+                    $errors[] = 'La contraseña actual no es correcta.';
+                }
+                if (strlen($newPass) < PASSWORD_MIN_LENGTH) {
+                    $errors[] = 'La nueva contraseña debe tener al menos ' . PASSWORD_MIN_LENGTH . ' caracteres.';
+                }
+                if ($newPass !== $confirmPass) {
+                    $errors[] = 'La confirmación de la contraseña no coincide.';
+                }
+            }
+            $profileUser['name'] = $name;
+            if (!$errors) {
+                $setClauses = [];
+                $params = [];
+                if ($name !== $originalName) {
+                    $setClauses[] = 'name = ?';
+                    $params[] = $name;
+                }
+                if ($passwordRequested) {
+                    $setClauses[] = 'pass_hash = ?';
+                    $params[] = password_hash($newPass, PASSWORD_DEFAULT);
+                    $setClauses[] = 'must_reset_password = 0';
+                }
+                if ($setClauses) {
+                    $params[] = $profileUser['id'];
+                    $query = 'UPDATE users SET ' . implode(', ', $setClauses) . ' WHERE id = ?';
+                    $stmt = $pdo->prepare($query);
+                    $stmt->execute($params);
+                    if ($name !== $originalName) {
+                        $_SESSION['user']['name'] = $name;
+                    }
+                    if ($passwordRequested) {
+                        $_SESSION['user']['must_reset_password'] = 0;
+                    }
+                    flash_set('Perfil actualizado.');
+                } else {
+                    flash_set('No hay cambios que guardar.', 'error');
+                }
+                header('Location: ?a=profile');
+                exit;
+            }
+        }
+        unset($profileUser['pass_hash']);
+        render('profile', ['profileUser' => $profileUser, 'errors' => $errors]);
+        break;
+
     case 'login':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             check_csrf();
@@ -102,8 +183,14 @@ switch ($action) {
                     'name' => $u['name'],
                     'email' => $u['email'],
                     'role' => $u['role'],
+                    'must_reset_password' => (int)($u['must_reset_password'] ?? 0),
                 ];
-                header('Location: ?a=home');
+                if (!empty($_SESSION['user']['must_reset_password'])) {
+                    flash_set('Debes actualizar tu contraseña temporal antes de continuar.', 'error');
+                    header('Location: ?a=profile');
+                } else {
+                    header('Location: ?a=home');
+                }
                 exit;
             }
             $error = 'Credenciales inválidas';
@@ -155,6 +242,13 @@ switch ($action) {
              ORDER BY m.id DESC"
         );
         $modules = $modulesStmt->fetchAll();
+        $authors = $pdo->query(
+            "SELECT id, name, role
+             FROM users
+             WHERE role IN ('teacher','admin')
+             ORDER BY name ASC"
+        )->fetchAll();
+        $isAdminUser = current_user()['role'] === 'admin';
         $lessonsByModule = [];
         if ($modules) {
             $lessonRows = $pdo->query(
@@ -171,7 +265,11 @@ switch ($action) {
             }
             unset($module);
         }
-        render('admin', compact('modules'));
+        render('admin', [
+            'modules' => $modules,
+            'authors' => $authors,
+            'isAdmin' => $isAdminUser,
+        ]);
         break;
 
     case 'users':
@@ -185,7 +283,7 @@ switch ($action) {
              ORDER BY m.title ASC"
         )->fetchAll();
         $users = $pdo->query(
-            "SELECT id, name, email, role, created_at
+            "SELECT id, name, email, role, created_at, must_reset_password
              FROM users
              ORDER BY role DESC, name ASC"
         )->fetchAll();
@@ -227,6 +325,46 @@ switch ($action) {
             }
             $pdo->prepare('UPDATE users SET role = ? WHERE id = ?')->execute([$role, $uid]);
             flash_set('Rol actualizado.');
+            header('Location: ?a=users');
+            exit;
+        }
+        http_response_code(405);
+        echo 'Método no permitido';
+        break;
+
+    case 'user_set_password':
+        require_login();
+        require_role(['admin']);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            check_csrf();
+            $uid = (int)($_POST['user_id'] ?? 0);
+            $newPassword = (string)($_POST['password'] ?? '');
+            if ($uid <= 0 || $newPassword === '') {
+                flash_set('Indica un usuario y una contraseña temporal.', 'error');
+                header('Location: ?a=users');
+                exit;
+            }
+            if (strlen($newPassword) < PASSWORD_MIN_LENGTH) {
+                flash_set('La contraseña debe tener al menos ' . PASSWORD_MIN_LENGTH . ' caracteres.', 'error');
+                header('Location: ?a=users');
+                exit;
+            }
+            $userStmt = $pdo->prepare('SELECT id FROM users WHERE id = ?');
+            $userStmt->execute([$uid]);
+            if (!$userStmt->fetchColumn()) {
+                flash_set('Usuario no encontrado.', 'error');
+                header('Location: ?a=users');
+                exit;
+            }
+            $hash = password_hash($newPassword, PASSWORD_DEFAULT);
+            $mustReset = $uid === current_user()['id'] ? 0 : 1;
+            $pdo->prepare('UPDATE users SET pass_hash = ?, must_reset_password = ? WHERE id = ?')->execute([$hash, $mustReset, $uid]);
+            if ($uid === current_user()['id']) {
+                $_SESSION['user']['must_reset_password'] = 0;
+                flash_set('Tu contraseña se actualizó correctamente.');
+            } else {
+                flash_set('Contraseña temporal asignada. Pide al usuario que la cambie tras iniciar sesión.');
+            }
             header('Location: ?a=users');
             exit;
         }
@@ -310,6 +448,41 @@ switch ($action) {
         echo 'Método no permitido';
         break;
 
+    case 'module_set_author':
+        require_login();
+        require_role(['admin']);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            check_csrf();
+            $moduleId = (int)($_POST['module_id'] ?? 0);
+            $authorId = (int)($_POST['author_id'] ?? 0);
+            if ($moduleId <= 0 || $authorId <= 0) {
+                flash_set('Faltan datos para actualizar el autor del módulo.', 'error');
+                header('Location: ?a=admin');
+                exit;
+            }
+            $moduleStmt = $pdo->prepare('SELECT id FROM modules WHERE id = ?');
+            $moduleStmt->execute([$moduleId]);
+            if (!$moduleStmt->fetchColumn()) {
+                flash_set('Módulo no encontrado.', 'error');
+                header('Location: ?a=admin');
+                exit;
+            }
+            $authorStmt = $pdo->prepare("SELECT role FROM users WHERE id = ? AND role IN ('teacher','admin')");
+            $authorStmt->execute([$authorId]);
+            if (!$authorStmt->fetchColumn()) {
+                flash_set('El autor seleccionado no es válido.', 'error');
+                header('Location: ?a=admin');
+                exit;
+            }
+            $pdo->prepare('UPDATE modules SET created_by = ? WHERE id = ?')->execute([$authorId, $moduleId]);
+            flash_set('Autor del módulo actualizado.');
+            header('Location: ?a=admin#module-' . $moduleId);
+            exit;
+        }
+        http_response_code(405);
+        echo 'Método no permitido';
+        break;
+
     case 'toggle_module_active':
         require_login();
         require_role(['teacher', 'admin']);
@@ -380,6 +553,42 @@ switch ($action) {
             }
             $error = 'Faltan datos';
             render('admin', compact('error'));
+        }
+        http_response_code(405);
+        echo 'Método no permitido';
+        break;
+
+    case 'lesson_set_author':
+        require_login();
+        require_role(['admin']);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            check_csrf();
+            $lessonId = (int)($_POST['lesson_id'] ?? 0);
+            $authorId = (int)($_POST['author_id'] ?? 0);
+            if ($lessonId <= 0 || $authorId <= 0) {
+                flash_set('Faltan datos para actualizar el autor de la lección.', 'error');
+                header('Location: ?a=admin');
+                exit;
+            }
+            $lessonStmt = $pdo->prepare('SELECT id, module_id FROM lessons WHERE id = ?');
+            $lessonStmt->execute([$lessonId]);
+            $lesson = $lessonStmt->fetch();
+            if (!$lesson) {
+                flash_set('Lección no encontrada.', 'error');
+                header('Location: ?a=admin');
+                exit;
+            }
+            $authorStmt = $pdo->prepare("SELECT role FROM users WHERE id = ? AND role IN ('teacher','admin')");
+            $authorStmt->execute([$authorId]);
+            if (!$authorStmt->fetchColumn()) {
+                flash_set('El autor seleccionado no es válido.', 'error');
+                header('Location: ?a=admin#module-' . $lesson['module_id']);
+                exit;
+            }
+            $pdo->prepare('UPDATE lessons SET created_by = ? WHERE id = ?')->execute([$authorId, $lessonId]);
+            flash_set('Autor de la lección actualizado.');
+            header('Location: ?a=admin#module-' . $lesson['module_id']);
+            exit;
         }
         http_response_code(405);
         echo 'Método no permitido';

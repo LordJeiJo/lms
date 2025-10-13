@@ -862,6 +862,7 @@ if (!is_file($viewPath ?? '')) {
         <?php if ($u): ?>
           <nav>
             <a class="nav-link <?php echo ($_GET['a'] ?? 'home') === 'home' ? 'active' : ''; ?>" href="?a=home">Inicio</a>
+            <a class="nav-link <?php echo ($_GET['a'] ?? '') === 'profile' ? 'active' : ''; ?>" href="?a=profile">Perfil</a>
             <a class="nav-link <?php echo ($_GET['a'] ?? '') === 'view_module' ? 'active' : ''; ?>" href="?a=home#modulos">Módulos</a>
             <?php if (in_array($u['role'], ['teacher','admin'], true)): ?>
               <a class="nav-link <?php echo ($_GET['a'] ?? '') === 'admin' ? 'active' : ''; ?>" href="?a=admin">Panel</a>
@@ -880,6 +881,9 @@ if (!is_file($viewPath ?? '')) {
           <div>
             <div style="font-weight:700;color:var(--text-strong); font-size:0.95rem;">Hola, <?php echo htmlspecialchars($u['name']); ?></div>
             <div style="font-size:0.75rem; letter-spacing:0.16em; text-transform:uppercase; opacity:0.7;">Rol · <?php echo htmlspecialchars($u['role']); ?></div>
+            <?php if (!empty($u['must_reset_password'])): ?>
+              <div class="chip warning" style="margin-top:6px;">Actualiza tu contraseña</div>
+            <?php endif; ?>
           </div>
           <form class="logout-form" method="post" action="?a=logout">
             <button type="submit">Salir</button>

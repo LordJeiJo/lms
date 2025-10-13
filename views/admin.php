@@ -1,3 +1,8 @@
+<?php
+$modules = $modules ?? [];
+$authors = $authors ?? [];
+$isAdmin = $isAdmin ?? false;
+?>
 <section class="hero">
   <div class="subtitle">Panel de creación</div>
   <h1>Control absoluto sin perder velocidad.</h1>
@@ -39,6 +44,23 @@
             <span class="chip outline">Lecciones: <?php echo count($module['lessons'] ?? []); ?></span>
           </div>
         </header>
+        <?php if ($isAdmin): ?>
+          <form class="form-inline" method="post" action="?a=module_set_author" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+            <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+            <input type="hidden" name="module_id" value="<?php echo $module['id']; ?>">
+            <label style="display:grid; gap:6px; min-width:220px;">
+              <span style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.14em;">Autor del módulo</span>
+              <select name="author_id" style="padding:8px 10px; border-radius:12px; border:1px solid var(--border-soft); background:var(--input-bg); color:inherit;">
+                <?php foreach ($authors as $author): ?>
+                  <option value="<?php echo $author['id']; ?>" <?php if ((int)$module['created_by'] === (int)$author['id']) echo 'selected'; ?>>
+                    <?php echo htmlspecialchars($author['name'] . ' · ' . $author['role']); ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+            </label>
+            <button class="button secondary small" type="submit">Actualizar autor</button>
+          </form>
+        <?php endif; ?>
         <form class="form-inline" method="post" action="?a=toggle_module_active">
           <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
           <input type="hidden" name="id" value="<?php echo $module['id']; ?>">
@@ -137,6 +159,23 @@
                     </details>
                   </div>
                 </header>
+                <?php if ($isAdmin): ?>
+                  <form method="post" action="?a=lesson_set_author" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+                    <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                    <input type="hidden" name="lesson_id" value="<?php echo $lesson['id']; ?>">
+                    <label style="display:grid; gap:6px; min-width:220px;">
+                      <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.14em;">Autor de la lección</span>
+                      <select name="author_id" style="padding:8px 10px; border-radius:12px; border:1px solid var(--border-soft); background:var(--input-bg); color:inherit;">
+                        <?php foreach ($authors as $author): ?>
+                          <option value="<?php echo $author['id']; ?>" <?php if ((int)$lesson['created_by'] === (int)$author['id']) echo 'selected'; ?>>
+                            <?php echo htmlspecialchars($author['name'] . ' · ' . $author['role']); ?>
+                          </option>
+                        <?php endforeach; ?>
+                      </select>
+                    </label>
+                    <button class="button secondary small" type="submit">Actualizar autor</button>
+                  </form>
+                <?php endif; ?>
               </article>
             <?php endforeach; ?>
           <?php endif; ?>

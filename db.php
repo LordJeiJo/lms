@@ -34,6 +34,7 @@ if ($firstRun) {
     name TEXT NOT NULL,
     role TEXT NOT NULL CHECK(role IN ('teacher','student','admin')),
     pass_hash TEXT NOT NULL,
+    must_reset_password INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
   CREATE TABLE IF NOT EXISTS modules (
@@ -83,6 +84,23 @@ SQL);
 }
 
 $moduleColumns = $pdo->query("PRAGMA table_info(modules)")->fetchAll();
+$userColumns = $pdo->query("PRAGMA table_info(users)")->fetchAll();
+$hasMustReset = false;
+foreach ($userColumns as $column) {
+  if (($column['name'] ?? '') === 'must_reset_password') {
+    $hasMustReset = true;
+    break;
+  }
+}
+
+if (!$hasMustReset) {
+  try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN must_reset_password INTEGER NOT NULL DEFAULT 0");
+  } catch (Throwable $e) {
+    // Column already exists or cannot be created – continue gracefully.
+  }
+}
+
 $hasModuleActive = false;
 foreach ($moduleColumns as $column) {
   if (($column['name'] ?? '') === 'is_active') {

@@ -206,30 +206,47 @@ switch ($action) {
         exit;
 
     case 'register':
+        require_login();
+        require_role(['admin']);
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             check_csrf();
-            $email = trim($_POST['email'] ?? '');
-            $name = trim($_POST['name'] ?? '');
-            $pass = $_POST['pass'] ?? '';
-            if (!$email || !$name || !$pass) {
-                $error = 'Rellena todos los campos';
-                render('login', compact('error'));
+            $email = trim((string)($_POST['email'] ?? ''));
+            $name = trim((string)($_POST['name'] ?? ''));
+            $pass = (string)($_POST['pass'] ?? '');
+            $role = $_POST['role'] ?? 'student';
+            $role = in_array($role, ['student', 'teacher', 'admin'], true) ? $role : 'student';
+            $errors = [];
+            if ($name === '' || $email === '' || $pass === '') {
+                $errors[] = 'Rellena todos los campos.';
+            }
+            if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $errors[] = 'Indica un correo válido.';
+            }
+            if (strlen($pass) < PASSWORD_MIN_LENGTH) {
+                $errors[] = 'La contraseña debe tener al menos ' . PASSWORD_MIN_LENGTH . ' caracteres.';
+            }
+            if ($errors) {
+                flash_set(implode(' ', $errors), 'error');
+                header('Location: ?a=users');
+                exit;
             }
             $hash = password_hash($pass, PASSWORD_DEFAULT);
+            $mustReset = !empty($_POST['must_reset']) ? 1 : 0;
             try {
-                $pdo->prepare('INSERT INTO users (email, name, role, pass_hash) VALUES (?,?,?,?)')
-                    ->execute([$email, $name, 'student', $hash]);
-                flash_set('Usuario creado. Ya puedes iniciar sesión.');
-                header('Location: ?a=login');
+                $pdo->prepare('INSERT INTO users (email, name, role, pass_hash, must_reset_password) VALUES (?,?,?,?,?)')
+                    ->execute([$email, $name, $role, $hash, $mustReset]);
+                flash_set('Usuario creado correctamente.');
+                header('Location: ?a=users');
                 exit;
             } catch (Throwable $e) {
-                $error = 'No se pudo registrar (¿email ya en uso?)';
-                render('login', compact('error'));
+                flash_set('No se pudo registrar (¿email ya en uso?).', 'error');
+                header('Location: ?a=users');
+                exit;
             }
-        } else {
-            http_response_code(405);
-            echo 'Método no permitido';
         }
+        http_response_code(405);
+        echo 'Método no permitido';
+        exit;
         break;
 
     case 'admin':

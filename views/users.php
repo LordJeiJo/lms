@@ -13,6 +13,46 @@ $isAdmin = current_user()['role'] === 'admin';
   <h1>Visibilidad total del avance de cada alumno.</h1>
   <p>Integra la precisión de ThePowerMBA con la interfaz dinámica de EdApp: detecta dónde acelerar, qué reforzar y quién necesita ayuda.</p>
 </section>
+<?php if ($isAdmin): ?>
+  <section class="card" style="margin-top:32px; padding:28px; display:grid; gap:18px;">
+    <div>
+      <h2>Registrar nuevo usuario</h2>
+      <p class="muted" style="margin:0;">Crea cuentas manualmente. Puedes definir el rol inicial y si deberá cambiar la contraseña al iniciar sesión.</p>
+    </div>
+    <form method="post" action="?a=register" style="display:grid; gap:16px;">
+      <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px;">
+        <label style="display:grid; gap:6px;">
+          <span>Nombre completo</span>
+          <input type="text" name="name" autocomplete="name" required>
+        </label>
+        <label style="display:grid; gap:6px;">
+          <span>Correo electrónico</span>
+          <input type="email" name="email" autocomplete="email" required>
+        </label>
+      </div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px;">
+        <label style="display:grid; gap:6px;">
+          <span>Rol</span>
+          <select name="role" required>
+            <option value="student">Estudiante</option>
+            <option value="teacher">Profesor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+        <label style="display:grid; gap:6px;">
+          <span>Contraseña temporal</span>
+          <input type="password" name="pass" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" autocomplete="new-password" required>
+        </label>
+      </div>
+      <label style="display:flex; align-items:center; gap:10px; font-size:0.9rem;">
+        <input type="checkbox" name="must_reset" value="1" checked>
+        <span>Obligar a cambiar la contraseña al iniciar sesión</span>
+      </label>
+      <button class="button secondary" type="submit" style="justify-self:flex-start;">Crear usuario</button>
+    </form>
+  </section>
+<?php endif; ?>
 <section class="grid" style="margin-top:32px; gap:20px;">
   <h2>Alumnado</h2>
   <?php if (!$users): ?>
